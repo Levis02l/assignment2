@@ -9,6 +9,7 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as sns from 'aws-cdk-lib/aws-sns';
 import * as subs from 'aws-cdk-lib/aws-sns-subscriptions';
+import * as iam from 'aws-cdk-lib/aws-iam';
 
 export class Assignment2Stack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -92,6 +93,24 @@ export class Assignment2Stack extends cdk.Stack {
       },
     }));
     table.grantReadWriteData(addMetaFn);
+
+    const updateStatusFn = new NodejsFunction(this, 'UpdateStatusFn', {
+      entry: `${__dirname}/../lambdas/updateStatus.ts`,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 128,
+      environment: {
+        TABLE_NAME: table.tableName,
+        TOPIC_ARN: topic.topicArn,
+      },
+    });
+    topic.addSubscription(new subs.LambdaSubscription(updateStatusFn, {
+      filterPolicy: {
+        metadata_type: sns.SubscriptionFilter.existsFilter(),
+      },
+    }));
+    table.grantReadWriteData(updateStatusFn);
+    topic.grantPublish(updateStatusFn);
 
     new cdk.CfnOutput(this, 'BucketName', { value: bucket.bucketName });
     new cdk.CfnOutput(this, 'QueueUrl', { value: mainQueue.queueUrl });
