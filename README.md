@@ -1,14 +1,52 @@
-# Welcome to your CDK TypeScript project
+## Distributed Systems - Event-Driven Architecture.
 
-This is a blank project for CDK development with TypeScript.
+__Name:__ Haiqing Ji
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+__Demo__: ....URL of YouTube demo ......
 
-## Useful commands
+This repository contains the implementation of a skeleton design for an application that manages a photo gallery, illustrated below. The app uses an event-driven architecture and is deployed on the AWS platform using the CDK framework for infrastructure provisioning.
 
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `npx cdk deploy`  deploy this stack to your default AWS account/region
-* `npx cdk diff`    compare deployed stack with current state
-* `npx cdk synth`   emits the synthesized CloudFormation template
+![](./images/arch.png)
+
+### Code Status.
+
+Photographer features:
+Log new Images
+When a user uploads a .jpeg or .png file to S3, an S3→SQS notification triggers the LogImage Lambda, which writes a new item (with the image’s filename as the key) into DynamoDB. Any other file types cause the function to throw an error, routing the event to the DLQ.
+Status: Completed & Tested
+
+Metadata updating
+The photographer can send metadata messages (caption, date, or name) via SNS with a metadata_type attribute. The SNS Topic forwards only those messages to the AddMetadata Lambda (filter policy on metadata_type), which updates the corresponding DynamoDB item.
+Status: Completed & Tested
+
+Invalid image removal
+Messages that fail in LogImage go to the DLQ. The RemoveImage Lambda polls the DLQ, reads the event, and deletes the invalid object from the S3 bucket.
+Status: Completed & Tested
+
+Status Update Mailer
+After a moderator updates an image’s status, the system publishes a second SNS message with an event_type of StatusUpdated. The ConfirmMailer Lambda subscribes only to that event, and sends a confirmation email via SES to the photographer.
+Status: Completed & Tested
+
+
+Moderator features:
+Status updating
+A moderator sends a review message (no message attribute) via SNS with a metadata_type of StatusUpdate. The UpdateStatus Lambda receives it (filter policy on metadata_type), writes the status and reason into DynamoDB, then publishes its own StatusUpdated SNS event for the mailer.
+Status: Completed & Tested
+
+
+
+__Feature:__
+
+**Photographer**  
+- Log new Images – Completed & Tested (10 marks)  
+- Metadata updating – Completed & Tested (10 marks)  
+- Invalid image removal – Completed & Tested (10 marks)  
+- Status Update Mailer – Completed & Tested (10 marks)  
+
+**Moderator**  
+- Status updating – Completed & Tested (10 marks)  
+
+**Cross-cutting**  
+- Filtering (SNS subscription filter policies) – Completed & Tested (40 marks)  
+- Messaging (end-to-end event flow) – Completed & Tested (10 marks)  
+

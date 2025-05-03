@@ -106,16 +106,39 @@ export class Assignment2Stack extends cdk.Stack {
     });
     topic.addSubscription(new subs.LambdaSubscription(updateStatusFn, {
       filterPolicy: {
-        metadata_type: sns.SubscriptionFilter.existsFilter(),
+        metadata_type: sns.SubscriptionFilter.stringFilter({ allowlist: ['StatusUpdate'] }),
       },
     }));
     table.grantReadWriteData(updateStatusFn);
     topic.grantPublish(updateStatusFn);
 
+    const confirmMailerFn = new NodejsFunction(this, 'ConfirmMailerFn', {
+      entry: `${__dirname}/../lambdas/confirmMailer.ts`,
+      runtime: lambda.Runtime.NODEJS_18_X,
+      timeout: cdk.Duration.seconds(10),
+      memorySize: 256,
+      environment: {
+        TABLE_NAME: table.tableName,
+        SES_EMAIL_FROM: process.env.SES_EMAIL_FROM || '20109223@mail.wit.ie',
+        SES_EMAIL_TO:   process.env.SES_EMAIL_TO   || '3085487102j@gmail.com',
+        SES_REGION:    'eu-west-1',
+      },
+    });
+    topic.addSubscription(new subs.LambdaSubscription(confirmMailerFn, {
+      filterPolicy: {
+        event_type: sns.SubscriptionFilter.stringFilter({ allowlist: ['StatusUpdated'] }),
+      },
+    }));
+    confirmMailerFn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ses:SendEmail','ses:SendRawEmail','ses:SendTemplatedEmail'],
+      resources: ['*'],
+      effect: iam.Effect.ALLOW,
+    }));
+
     new cdk.CfnOutput(this, 'BucketName', { value: bucket.bucketName });
-    new cdk.CfnOutput(this, 'QueueUrl', { value: mainQueue.queueUrl });
-    new cdk.CfnOutput(this, 'DLQUrl', { value: dlq.queueUrl });
-    new cdk.CfnOutput(this, 'TableName', { value: table.tableName });
-    new cdk.CfnOutput(this, 'TopicArn', { value: topic.topicArn });
+    new cdk.CfnOutput(this, 'QueueUrl',   { value: mainQueue.queueUrl });
+    new cdk.CfnOutput(this, 'DLQUrl',     { value: dlq.queueUrl });
+    new cdk.CfnOutput(this, 'TableName',  { value: table.tableName });
+    new cdk.CfnOutput(this, 'TopicArn',   { value: topic.topicArn });
   }
 }
