@@ -1,8 +1,8 @@
 ## Distributed Systems - Event-Driven Architecture.
 
-__Name:__ Haiqing Ji
+__Name:__ Haiqing Ji 20109223
 
-__Demo__: ....URL of YouTube demo ......
+__Demo__: https://youtu.be/xHiCKVoLOBo
 
 This repository contains the implementation of a skeleton design for an application that manages a photo gallery, illustrated below. The app uses an event-driven architecture and is deployed on the AWS platform using the CDK framework for infrastructure provisioning.
 
